@@ -41,19 +41,19 @@
                 <div data-markdown>
                     # Tests d'intégration sur différentes Database
                 </div>
-                <div class="fragment">Bonita supporte Oracle, PostgreSQL, MySQL, SQL Server</div>
+                <div class="fragment">Bonita supporte Oracle, PostgreSQL, MySQL, SQL Server.</div>
                 <div class="fragment">H2 en mode émulation est rapide, mais ne valide pas la compatibilité sur les
-                    autres DB vendors
+                    autres DB vendors.
                 </div>
             </section>
             <section align="center">
                 <h2>Bonita doit tourner sur</h2>
                 <div>
-                    <img src="images/logo-mysql.png" border="0 px">
-                    <img src="images/logo-postgresql.png" border="0 px">
+                    <img src="images/logo-mysql.png">
+                    <img src="images/logo-postgresql.png">
                 </div>
-                <div><img src="images/logo-oracle.png" width="256px" height="256px">
-                    <img src="images/logo-sqlserver.png" width="256px" height="256px">
+                <div><img src="images/logo-oracle.png" width="230px" height="230px">
+                    <img src="images/logo-sqlserver.png" width="256px">
                 </div>
             </section>
             <section align="center">
@@ -68,11 +68,14 @@
                 </aside>
             </section>
 
+            <section data-markdown>
+                ## Ce qu'on a mis en place
+                Utilisation d’images docker déjà tunées pour les bases de donnée supportées.
+            </section>
             <section>
                 <div data-markdown>
                     ## Ce qu'on a mis en place
-                    Utilisation d’images docker déjà tunées pour les bases de donnée supportées:
-                    * La **configuration** est déjà dans l'image
+                    La **configuration** est déjà dans l'image
 
                     ```shell
                     #!/bin/bash
@@ -89,9 +92,8 @@
             </section>
             <section data-markdown>
                 ## Ce qu'on a mis en place
-                Utilisation d’images docker déjà tunées pour les bases de donnée supportées:
-                * Les **schémas / databases** nécessaires sont déjà dans l'image
-                * Les **users** de connexion sont déjà dans l'image
+                Les **schémas / databases** nécessaires sont déjà dans l'image
+                Les **users** de connexion sont déjà dans l'image
 
                 ```sql
                 CREATE ROLE bonita LOGIN PASSWORD 'bpm';
@@ -135,32 +137,33 @@
 </code></pre>
             </section>
             <section>
-                <div data-markdown>A chaque lancement des tests d'intégration, on lance un nouveau conteneur Docker
-                </div>
+                <div data-markdown>A chaque lancement des tests d'intégration, on lance un nouveau conteneur Docker</div>
 
-                <pre><code>
+<pre><code>
 <configuration>
   <images>
-    <image>
+    &lt;image>
       <name>${docker-mysql-image}</name>
-        <run>
-          <env>
-            <MYSQL_ROOT_PASSWORD>root</MYSQL_ROOT_PASSWORD>
-          </env>
-          <ports>
-            <port>db.random.port:3306</port>
-          </ports>
-        </run>
-      </image>
+      <run>
+        <env>
+          <MYSQL_ROOT_PASSWORD>root</MYSQL_ROOT_PASSWORD>
+        </env>
+        <ports>
+          <port>db.random.port:3306</port>
+        </ports>
+      </run>
+    &lt;/image>
   </images>
 </configuration>
 </code></pre>
             </section>
-            <section data-markdown>
-                ## Comment?
-                * Activation par profils maven (1 profil pour chaque DB vendor)
-                * Utilisation d'un plugin Maven pour lancer un nouveau conteneur Docker à partir d'une image
-                * Idem avec plugin gradle
+            <section>
+                <div data-markdown>
+                    ## Comment?
+                    * Activation par profils maven (1 profil pour chaque DB vendor)
+                    * Utilisation d'un plugin Maven pour lancer un nouveau conteneur Docker à partir d'une image
+                    * Idem avec plugin gradle
+                </div>
                 <aside class="notes" data-markdown>
                     TODO : ref plugin gradle
                     example de code maven/gradle
@@ -173,51 +176,53 @@
                     Le plugin Maven permet de choisir un port aléatoire. Plus de conflit de ports.
 
                     ![pigs rushing](images/pig_rush.jpg)
+                </div>
+                <aside class="notes" data-markdown>
+                    
+                </aside>
+            </section>
+            <section>
+                <div data-markdown>
+                    ## mais encore?
 
-                    Docker permet d'attendre la fin réelle du démarrage du conteneur avant de lancer les tests.
+                    Docker permet de s'assurer que l'image est up & running avant de lancer les tests
+
+                    ```
+                    FROM postgres:9.3
+                    MAINTAINER Laurent Leseigneur <laurent.leseigneur@bonitasoft.com>
+
+                    # restore dump on startup if dumpfile is present
+                    VOLUME /opt/bonita/dump
+
+                    COPY 0_init-databases.sql /docker-entrypoint-initdb.d/0_init-databases.sql
+                    COPY 1_set-max_prepared_transactions.sh
+                    /docker-entrypoint-initdb.d/1_set-max_prepared_transactions.sh
+                    COPY 2_restore_dump.sh /docker-entrypoint-initdb.d/2_restore_dump.sh
+                    COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+
+                    HEALTHCHECK --interval=5s --retries=120 CMD ["/usr/local/bin/healthcheck.sh"]
+                    ```
                 </div>
                 <aside class="notes" data-markdown>HealthCheck</aside>
             </section>
             <section>
                 <div data-markdown>
-                    ## Limitations
-                    Pas d'image docker pour MS SQL Server (compatible avec bonita) . Ces tests tournent toujours "à
-                    l'ancienne".
+                    # Bénéfices
+                    * env. clean avant chaque lancement
+                    * lancement en local pour debugguer
+                    * La R&D est autonome complètement autonome
+                </div>
+                <aside class="notes" data-markdown></aside>
+            </section>
+            <section>
+                <div data-markdown>
+                    # Limitations
+                    Pas d'image docker pour MS SQL Server (compatible avec bonita).
+                    Ces tests tournent toujours "à l'ancienne".
                 </div>
                 <aside class="notes" data-markdown>
                     Transactions distribuées XA pas supportées dans l'image docker SQL Server
                     contraintes peu compatible avec une intégration continue sur les volumes de stockage
-                </aside>
-            </section>
-            <section>
-                <div data-markdown>
-                    ## Limitations
-                    Besoin de s'assurer que l'image est up & running
-
-                    ```
-                    FROM postgres:9.3
-
-                    MAINTAINER Laurent Leseigneur
-                    <laurent.leseigneur
-                            @bonitasoft.com>
-
-                        # allow to bind volume for database backup/restore
-                        VOLUME /opt/bonita/sql
-
-                        # restore dump on startup if dumpfile is present
-                        VOLUME /opt/bonita/dump
-
-                        COPY 0_init-databases.sql /docker-entrypoint-initdb.d/0_init-databases.sql
-                        COPY 1_set-max_prepared_transactions.sh
-                        /docker-entrypoint-initdb.d/1_set-max_prepared_transactions.sh
-                        COPY 2_restore_dump.sh /docker-entrypoint-initdb.d/2_restore_dump.sh
-                        COPY healthcheck.sh /usr/local/bin/healthcheck.sh
-
-                        HEALTHCHECK --interval=5s --retries=120 CMD ["/usr/local/bin/healthcheck.sh"]
-                        ```
-                </div>
-                <aside class="notes" data-markdown>
-                    heathcheck details
                 </aside>
             </section>
         </section>
