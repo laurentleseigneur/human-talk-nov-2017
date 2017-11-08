@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta name="author" content="Laurent Leseigneur">
+    <meta name="author" content="Emmanuel Duchastenier">
+
+
+    <title>Human talk novembre 2017</title>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/bonitasoft.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+
+
+
+    </script>
+</head>
+<body>
+<div class="reveal">
+    <section class="slides">
+        <section title="intro">
+            <h1>Docker @ Bonitasoft R&amp;D</h1>
+            <p>Emmanuel Duchastenier, Laurent Leseigneur
+            </p>
+        </section>
+        <section title="Engine tests on all DB vendor">
+            <section>
+                <div data-markdown>
+                    # Tests d'intégration sur différentes Database
+                </div>
+                <div class="fragment">Bonita supporte Oracle, PostgreSQL, MySQL, SQL Server</div>
+                <div class="fragment">H2 en mode émulation est rapide, mais ne valide pas la compatibilité sur les
+                    autres DB vendors
+                </div>
+            </section>
+            <section align="center">
+                <h2>Bonita doit tourner sur</h2>
+                <div>
+                    <img src="images/logo-mysql.png" border="0 px">
+                    <img src="images/logo-postgresql.png" border="0 px">
+                </div>
+                <div><img src="images/logo-oracle.png" width="256px" height="256px">
+                    <img src="images/logo-sqlserver.png" width="256px" height="256px">
+                </div>
+            </section>
+            <section align="center">
+                <h2>Avant</h2>
+                <img src="images/old_computer.jpg">
+
+                <aside class="notes" data-markdown>
+                    On dépendait de serveur de base de données qui devait:
+                    * être up
+                    * avoir la bonne configuration
+                    * les instances de base de données / schéma devait être créées
+                </aside>
+            </section>
+
+            <section>
+                <div data-markdown>
+                    ## Ce qu'on a mis en place
+                    Utilisation d’images docker déjà tunées pour les bases de donnée supportées:
+                    * La **configuration** est déjà dans l'image
+
+                    ```shell
+                    #!/bin/bash
+
+                    #max_prepared_transactions
+                    sed -i "s/^.*max_prepared_transactions\s*=\s*\(.*\)$/max_prepared_transactions = 100/"
+                    "$PGDATA"/postgresql.conf
+                    ```
+                </div>
+                <aside class="notes" data-markdown>
+                    Config: support des transactions XA (Oracle),
+                    max Prepared statement (PostgreSQL)
+                </aside>
+            </section>
+            <section data-markdown>
+                ## Ce qu'on a mis en place
+                Utilisation d’images docker déjà tunées pour les bases de donnée supportées:
+                * Les **schémas / databases** nécessaires sont déjà dans l'image
+                * Les **users** de connexion sont déjà dans l'image
+
+                ```sql
+                CREATE ROLE bonita LOGIN PASSWORD 'bpm';
+
+                CREATE DATABASE bonita
+                WITH OWNER = bonita
+                ENCODING = 'UTF8'
+                TABLESPACE = pg_default
+                CONNECTION LIMIT = -1;
+                ```
+
+            </section>
+            <section>
+                <div data-markdown>
+                    ## Ce qu'on a mis en place
+                    Possibilité de précharger des données à partir d'un dump
+
+                    ```
+                    #!/bin/bash
+                    if [ -f /opt/bonita/dump/bonita.dump ]; then
+                    psql -h localhost -p 5432 -Ubonita bonita < /opt/bonita/dump/bonita.dump
+                    date > /var/lib/postgresql/restore.lastExecution
+                    echo "Database restored"
+                    fi
+                    ```
+                </div>
+                <aside class="notes" data-markdown>
+                    Si le fichier est présent au bon endroit
+                </aside>
+            </section>
+            <section>
+                <div data-markdown>A chaque lancement des tests d'intégration, on lance un nouveau conteneur Docker
+                </div>
+
+                <pre><code>
+<plugin>
+    <groupId>io.fabric8</groupId>
+    <artifactId>docker-maven-plugin</artifactId>
+    <version>0.18.1</version>
+</plugin>
+</code></pre>
+            </section>
+            <section>
+                <div data-markdown>A chaque lancement des tests d'intégration, on lance un nouveau conteneur Docker
+                </div>
+
+                <pre><code>
+<configuration>
+  <images>
+    <image>
+      <name>${docker-mysql-image}</name>
+        <run>
+          <env>
+            <MYSQL_ROOT_PASSWORD>root</MYSQL_ROOT_PASSWORD>
+          </env>
+          <ports>
+            <port>db.random.port:3306</port>
+          </ports>
+        </run>
+      </image>
+  </images>
+</configuration>
+</code></pre>
+            </section>
+            <section data-markdown>
+                ## Comment?
+                * Activation par profils maven (1 profil pour chaque DB vendor)
+                * Utilisation d'un plugin Maven pour lancer un nouveau conteneur Docker à partir d'une image
+                * Idem avec plugin gradle
+                <aside class="notes" data-markdown>
+                    TODO : ref plugin gradle
+                    example de code maven/gradle
+                </aside>
+            </section>
+            <section>
+                <div data-markdown>
+                    ## mais encore?
+
+                    Le plugin Maven permet de choisir un port aléatoire. Plus de conflit de ports.
+
+                    ![pigs rushing](images/pig_rush.jpg)
+
+                    Docker permet d'attendre la fin réelle du démarrage du conteneur avant de lancer les tests.
+                </div>
+                <aside class="notes" data-markdown>HealthCheck</aside>
+            </section>
+            <section>
+                <div data-markdown>
+                    ## Limitations
+                    Pas d'image docker pour MS SQL Server (compatible avec bonita) . Ces tests tournent toujours "à
+                    l'ancienne".
+                </div>
+                <aside class="notes" data-markdown>
+                    Transactions distribuées XA pas supportées dans l'image docker SQL Server
+                    contraintes peu compatible avec une intégration continue sur les volumes de stockage
+                </aside>
+            </section>
+            <section>
+                <div data-markdown>
+                    ## Limitations
+                    Besoin de s'assurer que l'image est up & running
+
+                    ```
+                    FROM postgres:9.3
+
+                    MAINTAINER Laurent Leseigneur
+                    <laurent.leseigneur
+                            @bonitasoft.com>
+
+                        # allow to bind volume for database backup/restore
+                        VOLUME /opt/bonita/sql
+
+                        # restore dump on startup if dumpfile is present
+                        VOLUME /opt/bonita/dump
+
+                        COPY 0_init-databases.sql /docker-entrypoint-initdb.d/0_init-databases.sql
+                        COPY 1_set-max_prepared_transactions.sh
+                        /docker-entrypoint-initdb.d/1_set-max_prepared_transactions.sh
+                        COPY 2_restore_dump.sh /docker-entrypoint-initdb.d/2_restore_dump.sh
+                        COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+
+                        HEALTHCHECK --interval=5s --retries=120 CMD ["/usr/local/bin/healthcheck.sh"]
+                        ```
+                </div>
+                <aside class="notes" data-markdown>
+                    heathcheck details
+                </aside>
+            </section>
+        </section>
+
+        <section title="Conclusion">
+            <section data-markdown>
+                ## Références
+
+                Plugin Maven Docker: [Fabric8](https://maven.fabric8.io/)
+            </section>
+        </section>
+    </section>
+</div>
+
+<script src="lib/js/head.min.js"></script>
+<script src="js/reveal.js"></script>
+
+<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+
+
+
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
