@@ -31,15 +31,16 @@
 <body>
 <div class="reveal">
     <section class="slides">
-        <section title="intro">
-            <h1>Docker @ Bonitasoft R&amp;D</h1>
-            <p>Emmanuel Duchastenier, Laurent Leseigneur
-            </p>
+        <section title="intro" data-markdown>
+            ## RETOUR D’EXPÉRIENCE SUR L’UTILISATION DE DOCKER PAR UNE ÉQUIPE R&D
+            Emmanuel Duchastenier  
+            Laurent Leseigneur
+            @Bonitasoft
         </section>
         <section title="Engine tests on all DB vendor">
             <section>
                 <div data-markdown>
-                    # Tests d'intégration sur différentes Database
+                    # Tests d'intégration sur différentes bases de données
                 </div>
                 <div class="fragment">Bonita supporte Oracle, PostgreSQL, MySQL, SQL Server.</div>
                 <div class="fragment">H2 en mode émulation est rapide, mais ne valide pas la compatibilité sur les
@@ -203,14 +204,17 @@
                     HEALTHCHECK --interval=5s --retries=120 CMD ["/usr/local/bin/healthcheck.sh"]
                     ```
                 </div>
-                <aside class="notes" data-markdown>HealthCheck</aside>
+                <aside class="notes" data-markdown>
+                    * docker fonctionne en couches, image officielle postgres + sur-couche de conf spécifique Bonita
+                    * HealthCheck
+                </aside>
             </section>
             <section>
                 <div data-markdown>
                     # Bénéfices
                     * env. clean avant chaque lancement
                     * lancement en local pour debugguer
-                    * La R&D est autonome complètement autonome
+                    * La R&D est complètement autonome
                 </div>
                 <aside class="notes" data-markdown></aside>
             </section>
@@ -227,11 +231,20 @@
             </section>
         </section>
 
-        <section title="Conclusion">
+        <section data-markdown>
+            ## Questions? / Réponses!
+
+            Merci de votre attention.
+        </section>
+
+        <section title="Références">
             <section data-markdown>
                 ## Références
 
-                Plugin Maven Docker: [Fabric8](https://maven.fabric8.io/)
+                Plugin Maven Docker: [Fabric8](https://maven.fabric8.io/)  
+                Plugin Maven Docker: [Gradle Docker plugin](https://github.com/bmuschko/gradle-docker-plugin)  
+                Image officielle docker avec des vrais morceaux de [Bonita](https://hub.docker.com/_/bonita/)  
+                Cette [présentation](https://laurentleseigneur.github.io/human-talk-nov-2017/)
             </section>
         </section>
     </section>
