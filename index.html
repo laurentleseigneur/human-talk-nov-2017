@@ -34,7 +34,7 @@
         <section title="intro" data-markdown>
             ## RETOUR D’EXPÉRIENCE SUR L’UTILISATION DE DOCKER PAR UNE ÉQUIPE R&D
             Emmanuel Duchastenier  
-            Laurent Leseigneur
+            Laurent Leseigneur  
             @Bonitasoft
         </section>
         <section title="Engine tests on all DB vendor">
@@ -162,17 +162,15 @@
                 <div data-markdown>
                     ## Comment?
                     * Activation par profils maven (1 profil pour chaque DB vendor)
-                    * Utilisation d'un plugin Maven pour lancer un nouveau conteneur Docker à partir d'une image
                     * Idem avec plugin gradle
                 </div>
                 <aside class="notes" data-markdown>
-                    TODO : ref plugin gradle
-                    example de code maven/gradle
+                    multi base grace aux profils
                 </aside>
             </section>
             <section>
                 <div data-markdown>
-                    ## mais encore?
+                    ## Tips: scalabilité
 
                     Le plugin Maven permet de choisir un port aléatoire. Plus de conflit de ports.
 
@@ -184,7 +182,7 @@
             </section>
             <section>
                 <div data-markdown>
-                    ## mais encore?
+                    ## Tips: Healthcheck
 
                     Docker permet de s'assurer que l'image est up & running avant de lancer les tests
 
@@ -207,6 +205,7 @@
                 <aside class="notes" data-markdown>
                     * docker fonctionne en couches, image officielle postgres + sur-couche de conf spécifique Bonita
                     * HealthCheck
+		    * temps de démarrage oracle	
                 </aside>
             </section>
             <section>
